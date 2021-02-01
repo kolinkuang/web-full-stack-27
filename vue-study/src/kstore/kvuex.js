@@ -28,7 +28,8 @@ class Store {
         this._vm = new Vue({
             data: {
                 // 加上两个$，就不会被代理
-                $$state: options.state
+                $$state: options.state,
+                $$getters: this._defineGetters(options.getters)
             }
         })
 
@@ -44,6 +45,22 @@ class Store {
 
     set state(v) {
         console.error('请使用 replaceState() 重置状态')
+    }
+
+    get getters() {
+        return this._vm._data.$$getters
+    }
+
+    _defineGetters(_getters) {
+        const result = {}
+        Object.keys(_getters).forEach(key =>
+            Object.defineProperty(result, key, {
+                get() {
+                    return _getters[key]()
+                }
+            })
+        )
+        return result
     }
 
     // 实现提交变更方法 commit
