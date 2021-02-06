@@ -10,8 +10,8 @@
     <!--  路由入口，利用数据响应式，实现自动重渲染  -->
     <router-view/>
 
-    <p @click="$store.commit('add')">{{$store.state.counter}}</p>
-    <p @click="$store.dispatch('add')">{{$store.state.counter}}</p>
+    <p @click="$store.commit('add')">commit: {{$store.state.counter}}</p>
+    <p @click="$store.dispatch('add')">dispatch: {{$store.state.counter}}</p>
     <p>doubleCounter: {{$store.getters.doubleCounter}}</p>
   </div>
 </template>

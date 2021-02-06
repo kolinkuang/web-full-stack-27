@@ -20,6 +20,29 @@ class Store {
     constructor(options) {
         // 保存配置
         this.$options = options
+        this._wrappedGetters = options.getters
+        this._mutations = options.mutations
+        this._actions = options.actions
+
+        // 定义 computed 选项
+        const computed = {}
+        this.getters = {}
+        const store = this
+        // {doubleCounter(state){}}
+        Object.keys(this._wrappedGetters).forEach(key => {
+            // 获取用户定义的 getter
+            const fn = store._wrappedGetters[key]
+            // 转换为 computed 可使用的无参数形式
+            // 装饰器模式
+            // 关键语句！！！（使用了闭包）
+            computed[key] = () => {
+                return fn(store.state)
+            }
+            // 为 getters 代理只读属性
+            Object.defineProperty(store.getters, key, {
+                get: computed[key]
+            })
+        })
 
         // 对 state 做响应式处理
         // Vue 初始化的时候：
@@ -29,7 +52,8 @@ class Store {
             data: {
                 // 加上两个$，就不会被代理
                 $$state: options.state,
-                $$getters: this._defineGetters(options.getters)
+                // $$getters: this._defineGetters(options.getters)
+                hello_world: '45464646464646464'
             }
         })
 
@@ -47,29 +71,13 @@ class Store {
         console.error('请使用 replaceState() 重置状态')
     }
 
-    get getters() {
-        return this._vm._data.$$getters
-    }
-
-    _defineGetters(_getters) {
-        const result = {}
-        Object.keys(_getters).forEach(key =>
-            Object.defineProperty(result, key, {
-                get() {
-                    return _getters[key]()
-                }
-            })
-        )
-        return result
-    }
-
     // 实现提交变更方法 commit
     // commit(type, payload)
     commit(type, payload) {
         // 获取 type 在 mutations 选项中对应的函数
         // 并调用该函数
         // Note: 策略模式应用
-        const fn = this.$options.mutations[type]
+        const fn = this._mutations[type]
         if (!fn) {
             console.error('mutation not exist')
             return
@@ -80,7 +88,7 @@ class Store {
 
 
     dispatch(type, payload) {
-        const fn = this.$options.actions[type]
+        const fn = this._actions[type]
         if (!fn) {
             console.error('action not exist')
             return
