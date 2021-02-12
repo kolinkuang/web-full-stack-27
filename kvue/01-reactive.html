@@ -1,0 +1,37 @@
+<div id="app"></div>
+
+<script>
+    function defineReactive(obj, key, val) {
+        // 属性拦截
+        // 利用了闭包！！！
+        // 1. 局部作用域
+        // 2. 通过函数暴露出去
+        // 函数每被调用一次，都能保留中间值在内存里
+        Object.defineProperty(obj, key, {
+            get() {
+                // console.log('get', key)
+                return val
+            },
+            set(newVal) {
+                // console.log('set', key)
+                if (newVal !== val) {
+                    val = newVal
+                    update()
+                }
+            }
+        })
+    }
+
+    function update() {
+        const app = document.getElementById('app')
+        app.innerText = obj.foo
+    }
+
+    const obj = {}
+    defineReactive(obj, 'foo', 'hello')
+
+    setInterval(() => {
+        // 响应式赋值
+        obj.foo = new Date().toLocaleTimeString()
+    }, 1000)
+</script>

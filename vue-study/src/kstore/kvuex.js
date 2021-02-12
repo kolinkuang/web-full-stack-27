@@ -38,7 +38,7 @@ class Store {
             computed[key] = () => {
                 return fn(store.state)
             }
-            // 为 getters 代理只读属性
+            // 为 getters 代理只读属性，并通过缓存延迟响应
             Object.defineProperty(store.getters, key, {
                 get: computed[key]
             })

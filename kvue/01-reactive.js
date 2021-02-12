@@ -25,3 +25,9 @@ function defineReactive(obj, key, val) {
     })
 
 }
+
+const obj = {}
+defineReactive(obj, 'foo', 'fooo')
+defineReactive(obj, 'bar', 'barr')
+obj.foo
+obj.foo = 'foooooooooo'
