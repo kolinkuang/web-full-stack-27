@@ -20,13 +20,13 @@ class KVueRouter {
         Vue.util.defineReactive(this, 'current', '/')
 
         // 2. 监听 hash 变化
-        window.addEventListener('hashchange', () => {
-            // console.log('hashchange called');
+        window.addEventListener('hashchange', this.onHashChange.bind(this))
+    }
 
-            // 获取 # 后面的部分
-            this.current = window.location.hash.slice(1)
-            console.log(this.current)
-        })
+    onHashChange() {
+        // 获取 # 后面的部分
+        this.current = window.location.hash.slice(1)
+        console.log(this.current)
     }
 
 }

@@ -20,9 +20,9 @@ class Store {
     constructor(options) {
         // 保存配置
         this.$options = options
-        this._wrappedGetters = options.getters
-        this._mutations = options.mutations
-        this._actions = options.actions
+        this._wrappedGetters = options.getters || {}
+        this._mutations = options.mutations || {}
+        this._actions = options.actions || {}
 
         // 定义 computed 选项
         const computed = {}
@@ -52,8 +52,6 @@ class Store {
             data: {
                 // 加上两个$，就不会被代理
                 $$state: options.state,
-                // $$getters: this._defineGetters(options.getters)
-                hello_world: '45464646464646464'
             }
         })
 
@@ -83,18 +81,22 @@ class Store {
             return
         }
 
+        // 指定上下文为 Store 实例
+        // 传递 state 给 mutation
         fn(this.state, payload)
     }
 
 
     dispatch(type, payload) {
+        // 获取 开发人员 编写的 type 对应的 action
         const fn = this._actions[type]
         if (!fn) {
-            console.error('action not exist')
+            console.error(`Unknown action type: ${type}`)
             return
         }
 
-        fn(this, payload)
+        // 异步结果处理常常需要返回 promise
+        return fn(this, payload)
     }
 
 }
