@@ -3,6 +3,10 @@
     <p>{{counter}}</p>
     <p m-text="counter"></p>
     <p m-html="desc"></p>
+    <button @Click="document.getElementById('counter2').innerText++">Add 1</button>
+    <p id="counter2">1</p>
+    <input m-model="counter3" />
+    <p>m-model:</p><p>{{counter3}}</p>
 </div>
 
 <!--<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>-->
@@ -13,7 +17,8 @@
         el: '#app',
         data: {
             counter: 1,
-            desc: '<div style="color:blue">Hello World</div>'
+            counter3: 1,
+            desc: '<div style="color:blue">Hello World</div>',
         }
     })
     setInterval(() => {

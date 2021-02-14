@@ -3,6 +3,10 @@
 // -- 实现依赖收集与依赖通知
 // -- 实现编译器与模板引擎
 
+//TODO
+// 实现 k-model 指令：
+// 需要通过闭包缓存 k-model 的变量值
+
 /**
  * MVVM 实例
  *  */
@@ -196,22 +200,25 @@ class Compiler {
     compileElement(node) {
         const attrs = node.attributes
         Array.from(attrs).forEach(({name, value}) => {
-            if (!this.isDirective(name)) {
-                return
+            if (this.isDirective(name)) {
+                const dir = name.slice(2)
+                this[dir] && this[dir](node, value)
+            } else if (this.isEvent(name)) {
+                // 事件处理
+                const event = name.slice(1)
+                node.addEventListener(event, () => window.eval(value))
+            } else {
+                console.log('Unknown element')
             }
-            const dir = name.slice(2)
-            this[dir] && this[dir](node, value)
         })
-
-        //TODO
-        // 1.完成事件处理@xx
-        // 2.实现 k-model 指令
-        // 3.实现数组响应式
-
     }
 
     isDirective(attrName) {
         return attrName.startsWith('m-')
+    }
+
+    isEvent(attrName) {
+        return attrName.startsWith('@')
     }
 
     isInterText(node) {
@@ -223,11 +230,15 @@ class Compiler {
     }
 
     text(node, exp) {
-        this.update(node, exp, 'text')
+        this.update(...arguments, 'text')
     }
 
     html(node, exp) {
-        this.update(node, exp, 'html')
+        this.update(...arguments, 'html')
+    }
+
+    model(node, exp) {
+        this.update(...arguments, 'model')
     }
 
     update(node, key, dir) {
@@ -245,6 +256,11 @@ class Compiler {
 
     htmlUpdate(node, val) {
         node.innerHTML = val
+    }
+
+    modelUpdate(node, val) {
+        // node.addEventListener('input', event => val += event.data)
+        // node.textContent = val
     }
 
 }
