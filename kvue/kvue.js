@@ -1,8 +1,15 @@
-// Vue ==> Observer ==> (1-to-n, 依赖收集) ==> Dep ==> (1-to-n) ==> Watcher ==> update()
-// Watcher: 只负责更新
+// Vue instance ==> (1 data object to n sub objects)
+// ==> Observer ==> (1 object to n attributes/keys, 依赖收集)
+// ==> Dep ==> (1 key to n watcher)
+// ==> Watcher ==> (1 watcher to 1 update()) => update()
+
+// Observer 观察者：负责对对象进行依赖收集
+// Dep：负责管理 watcher
+// Watcher 监听器: 负责执行属性响应式更新
 
 function defineReactive(obj, key, val) {
 
+    // 递归拆解对象属性
     observe(val)
 
     // 创建对应的 Dep 实例
@@ -39,7 +46,7 @@ function observe(obj) {
         return obj
     }
 
-    // 创建一个观察者用来观察
+    // 创建一个观察者用来观察对象，并创建数据响应式
     new Observer(obj)
 }
 
@@ -47,7 +54,7 @@ function proxy(vm) {
     Object.keys(vm.$data).forEach(key => {
         Object.defineProperty(vm, key, {
             get() {
-                // 转发
+                // 闭包，转发
                 return vm.$data[key]
             },
 
@@ -56,26 +63,6 @@ function proxy(vm) {
             }
         })
     })
-}
-
-// Observer: 用来区分对象还是数组，从而做不同响应式操作
-class Observer {
-    constructor(value) {
-        if (Array.isArray(value)) {
-            // array:
-
-        } else {
-            // object
-            this.walk(value)
-        }
-    }
-
-    // 访问器模式
-    walk(obj) {
-        Object.keys(obj).forEach(key => {
-            defineReactive(obj, key, obj[key])
-        })
-    }
 }
 
 // KVue
@@ -94,12 +81,39 @@ class KVue {
         proxy(this)
 
         // 2.编译：传入宿主元素和 KVue 实例
-        new Compile(options.el, this)
+        new Compiler(options.el, this)
     }
 
 }
 
-class Compile {
+// Observer: 用来区分对象还是数组，从而做不同响应式操作
+// 持续监听所有属性
+class Observer {
+
+    constructor(value) {
+        if (Array.isArray(value)) {
+            // array
+            this.walkArray(value)
+        } else {
+            // object
+            this.walk(value)
+        }
+    }
+
+    // 访问器模式
+    walk(obj) {
+        Object.keys(obj).forEach(key => defineReactive(obj, key, obj[key]))
+    }
+
+    walkArray(arr) {
+        //TODO
+
+    }
+
+}
+
+// 解析指令
+class Compiler {
 
     constructor(el, vm) {
         this.$vm = vm
@@ -121,9 +135,9 @@ class Compile {
                 if (node.childNodes.length > 0) {
                     this.compile(node)
                 }
-            } else if (this.isInter(node)) {
+            } else if (this.isInterText(node)) {
                 console.log('编译文本', node.textContent)
-                this.compileText(node)
+                this.compileInterText(node)
             } else {
                 console.log('Unknown')
             }
@@ -131,49 +145,47 @@ class Compile {
     }
 
     // 是否插值表达式 {{xx}}
-    isInter(node) {
+    isInterText(node) {
         return node.nodeType === 3 && /{{(.*)}}/.test(node.textContent)
     }
 
     // 编译元素
     compileElement(node) {
-        // attrs
         const attrs = node.attributes
         Array.from(attrs).forEach(a => {
-            // k-text
             const attrName = a.name  // k-text
             const exp = a.value      // counter
-            if (attrName.startsWith('k-')) {
-                const dir = attrName.substring(2)
+            if (this.isCustomAttribute(attrName)) {
+                const dir = attrName.slice(2)
                 this[dir] && this[dir](node, exp)
             }
 
             // k-bind:title=""
             // :style :class
-
         })
     }
 
+    isCustomAttribute(attrName) {
+        return attrName.startsWith('k-')
+    }
+
     // 处理插值
-    compileText(node) {
+    compileInterText(node) {
         this.update(node, RegExp.$1, 'text')
-        // node.textContent = this.$vm[RegExp.$1]
     }
 
     // k-text
     text(node, exp) {
         this.update(node, exp, 'text')
-        // node.textContent = this.$vm[exp]
-    }
-
-    textUpdate(node, val) {
-        node.textContent = val
     }
 
     // k-html
     html(node, exp) {
         this.update(node, exp, 'html')
-        // node.innerHTML = this.$vm[exp]
+    }
+
+    textUpdate(node, val) {
+        node.textContent = val
     }
 
     htmlUpdate(node, val) {
@@ -183,12 +195,12 @@ class Compile {
     // 节点，表达式和指令
     update(node, key, dir) {
         // 0. 获取实操函数
-        const fn = this[dir+'Update']
+        const fn = this[dir + 'Update']
 
-        // 1.init
+        // 1.初始赋值
         fn && fn(node, this.$vm[key])
 
-        // 2.update, 使用了闭包
+        // 2.更新监听, 使用闭包
         new Watcher(this.$vm, key, val => {
             fn && fn(node, val)
         })
