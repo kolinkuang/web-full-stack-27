@@ -9,23 +9,15 @@
 class MVue {
 
     constructor(options) {
-        this.$el = options.el
-        this.$data = options.data
+        this.$el = options['el']
+        this.$data = options['data']
 
         // 实现数据响应式
-        this.observe(this.$data)
+        Observer.observe(this.$data)
         this.proxy(this)
 
         // 实现编译器
         new Compiler(this.$el, this)
-    }
-
-    observe(obj) {
-        if (typeof obj !== 'object') {
-            return obj
-        }
-
-        new Observer(obj)
     }
 
     proxy(vm) {
@@ -40,59 +32,82 @@ class MVue {
             }))
     }
 
+    static $set(obj, key, val) {
+        Observer.set(...arguments)
+    }
+
 }
 
 /**
  * Observer 观察者
- * 1.负责对对象进行依赖收集
- * 2.负责定义对象的响应式
+ * 1.负责数据响应化
+ * 2.负责对对象进行依赖收集
  * 3.观察者模式应用
+ * 4.每个 data object 对应一个 observer
  *  */
 class Observer {
 
     constructor(value) {
         if (Array.isArray(value)) {
-            this.traverseArray(value)
+            this.observeArray(value)
         } else {
-            this.traverse(value)
+            this.walk(value)
         }
     }
 
-    traverse(obj) {
-        Object.keys(obj).forEach(key => this.defineReactive(obj, key, obj[key]))
+    walk(obj) {
+        Object.keys(obj).forEach(key => Observer.defineReactive(obj, key, obj[key]))
     }
 
-    traverseArray() {
-        console.log('To be implemented')
+    observeArray(items) {
+        items.forEach(Observer.observe)
     }
 
-    defineReactive(obj, key, val) {
+    static observe(obj) {
+        if (typeof obj !== 'object' || obj === null) {
+            return
+        }
+
+        new Observer(obj)
+    }
+
+    static defineReactive(obj, key, val) {
+        // 解决嵌套对象问题
+        Observer.observe(val)
+
         // 每个 dep 实例通过闭包形成各自的封闭作用域
         const dep = new Dep()
 
         Object.defineProperty(obj, key, {
             get() {
                 // 依赖收集
-                Dep.target && dep.attach(Dep.target)
+                // Note: ES6 没有原生静态属性，所以用以下方式来模拟（虽然看上去挺奇怪）
+                Dep.target && dep.collect(Dep.target)
                 return val
             },
             set(newVal) {
-                if (newVal !== val) {
-                    val = newVal
-                    // 依赖通知
-                    dep.notify()
+                if (newVal === val) {
+                    return
                 }
+                // 解决新值是对象的情况
+                Observer.observe(newVal)
+                val = newVal
+                // 依赖通知
+                dep.notifyUpdate()
             }
         })
+    }
+
+    static set(obj, key, val) {
+        Observer.defineReactive(...arguments)
     }
 
 }
 
 /**
  * Dep 主题/被依赖实例/被订阅实例
- * 1.负责管理 Watcher
- * 2.只需保存 Watcher 列表，不需保存 key（属性名），
- * 因为对 Dep 的调用是通过闭包实现
+ * 1.负责管理 Watcher 列表
+ * 2.不需管理 key（属性名），因为对 Dep 的调用是通过闭包实现
  *  */
 class Dep {
 
@@ -100,11 +115,11 @@ class Dep {
         this.$watchers = []
     }
 
-    attach(watcher) {
+    collect(watcher) {
         this.$watchers.push(watcher)
     }
 
-    notify() {
+    notifyUpdate() {
         this.$watchers.forEach(watcher => watcher.update())
     }
 
@@ -115,30 +130,31 @@ class Dep {
  * 1.负责执行动态属性的响应式更新
  * 2.每个 Watcher 持有一个更新函数
  * 3.更新函数负责更新视图
- * 4.关键属性：fn, update()
+ * 4.关键属性：updateFn, update()
  *  */
 class Watcher {
 
-    constructor(vm, key, fn) {
+    constructor(vm, key, updateFn) {
         this.vm = vm
         this.key = key
-        this.fn = fn
+        this.updateFn = updateFn
 
         // 触发一次依赖收集
+        // Note: 这样实现会导致 Observer 跟 Watcher 耦合？
         Dep.target = this
         console.log('Triggering dependency collection:', this.vm[this.key])
         Dep.target = null
     }
 
     update() {
-        this.fn.call(this.vm, this.vm[this.key])
+        this.updateFn.call(this.vm, this.vm[this.key])
     }
 
 }
 
 /**
  * Compiler 编译器
- * 1.解析指令
+ * 1.编译模板，解析指令
  * 2.初始化视图
  * 3.绑定每个 Watcher，订阅数据变化
  *  */
@@ -147,15 +163,17 @@ class Compiler {
     constructor(el, vm) {
         this.$vm = vm
         this.$el = document.querySelector(el)
-        this.compile(this.$el)
+        if (this.$el) {
+            this.compile(this.$el)
+        }
     }
 
     compile(el) {
         el.childNodes.forEach(node => {
-            if (node.nodeType === 1) {
+            if (this.isElement(node)) {
                 console.log('Compiling element:', node.nodeName)
                 this.compileElement(node)
-                if (node.childNodes.length > 0) {
+                if (this.hasChildNodes(node)) {
                     this.compile(node)
                 }
             } else if (this.isInterText(node)) {
@@ -167,18 +185,32 @@ class Compiler {
         })
     }
 
+    isElement(node) {
+        return node.nodeType === 1
+    }
+
+    hasChildNodes(node) {
+        return node.childNodes && node.childNodes.length > 0
+    }
+
     compileElement(node) {
         const attrs = node.attributes
         Array.from(attrs).forEach(({name, value}) => {
-            if (!this.isCustomAttribute(name)) {
+            if (!this.isDirective(name)) {
                 return
             }
-            const directive = name.slice(2)
-            this[directive] && this[directive](node, value)
+            const dir = name.slice(2)
+            this[dir] && this[dir](node, value)
         })
+
+        //TODO
+        // 1.完成事件处理@xx
+        // 2.实现 k-model 指令
+        // 3.实现数组响应式
+
     }
 
-    isCustomAttribute(attrName) {
+    isDirective(attrName) {
         return attrName.startsWith('m-')
     }
 
@@ -200,19 +232,19 @@ class Compiler {
 
     update(node, key, dir) {
         console.log('calling', dir + 'Update()')
-        const _fn = this[dir + 'Update']
+        const fn = this[dir + 'Update']
         // 初始化视图
-        _fn && _fn(node, this.$vm[key])
+        fn && fn(node, this.$vm[key])
         // 更新视图；通过闭包实现；每个 watcher 都被绑定到 compiler
-        new Watcher(this.$vm, key, val => _fn(node, val))
+        new Watcher(this.$vm, key, val => fn(node, val))
     }
 
-    textUpdate(node, exp) {
-        node.textContent = exp
+    textUpdate(node, val) {
+        node.textContent = val
     }
 
-    htmlUpdate(node, exp) {
-        node.innerHTML = exp
+    htmlUpdate(node, val) {
+        node.innerHTML = val
     }
 
 }

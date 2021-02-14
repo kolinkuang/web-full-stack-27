@@ -241,7 +241,7 @@ class Watcher {
     }
 
     update() {
-        this.fn.call(this.vm, this.vm[this.key])
+        this.updateFn.call(this.vm, this.vm[this.key])
     }
 
 }
