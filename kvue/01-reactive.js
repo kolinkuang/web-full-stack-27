@@ -1,3 +1,20 @@
+// 数组响应式
+// 1.替换数组原型中 7 个方法
+const originalProto = Array.prototype
+
+// 备份一份，修改备份
+const arrayProto = Object.create(originalProto);
+['push', 'pop', 'shift', 'unshift', 'reverse', 'sort', 'splice'].forEach(method => {
+    arrayProto[method] = () => {
+        // 原始操作
+        originalProto[method].apply(this, arguments)
+
+        // 覆盖
+        console.log('数组执行', method, '操作')
+    }
+})
+
+
 // 属性拦截： defineProperty()
 // Vue.util.
 function defineReactive(obj, key, val) {
@@ -38,10 +55,17 @@ function observe(obj) {
         return obj
     }
 
-    // 遍历
-    Object.keys(obj).forEach(key => {
-        defineReactive(obj, key, obj[key])
-    })
+    if (Array.isArray(obj)) {
+        // 覆盖原型，替换7个变更操作
+        obj.__proto__ = arrayProto
+        // 对数组内部元素进行响应化
+        const keys = Object.keys(obj)
+        keys.forEach(key => observe(obj[key]))
+    } else {
+        Object.keys(obj).forEach(key =>
+            defineReactive(obj, key, obj[key])
+        )
+    }
 }
 
 // 如果用户有动态属性需要添加，需要使用 set
@@ -54,7 +78,8 @@ const obj = {
     bar: 'bar',
     a: {
         n: 1
-    }
+    },
+    arr: []
 }
 // defineReactive(obj, 'foo', 'fooo')
 // defineReactive(obj, 'bar', 'barr')
@@ -78,3 +103,4 @@ observe(obj)
 // 数组拦截需要覆盖 7 个变更方法：
 // push/pop/shift/unshift/...
 
+obj.arr.push(4)

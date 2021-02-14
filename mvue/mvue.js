@@ -14,7 +14,8 @@ class MVue {
 
     constructor(options) {
         this.$el = options['el']
-        this.$data = options['data']
+        this.$data = options.data
+        this.$methods = options.methods
 
         // 实现数据响应式
         Observer.observe(this.$data)
@@ -203,10 +204,12 @@ class Compiler {
             if (this.isDirective(name)) {
                 const dir = name.slice(2)
                 this[dir] && this[dir](node, value)
-            } else if (this.isEvent(name)) {
+            }
+            if (this.isEvent(name)) {
                 // 事件处理
+                // @click='onClick'
                 const event = name.slice(1)
-                node.addEventListener(event, () => window.eval(value))
+                this.eventHandler(node, value, event)
             } else {
                 console.log('Unknown element')
             }
@@ -219,6 +222,12 @@ class Compiler {
 
     isEvent(attrName) {
         return attrName.startsWith('@')
+    }
+
+    eventHandler(node, exp, event) {
+        // methods: {onClick: function () {}}
+        const fn = this.$vm.$methods && this.$vm.$methods[exp]
+        node.addEventListener(event, fn.bind(this.$vm))
     }
 
     isInterText(node) {
@@ -237,8 +246,13 @@ class Compiler {
         this.update(...arguments, 'html')
     }
 
+    // k-model="XX"
     model(node, exp) {
+        // update() 方法只完成赋值
         this.update(...arguments, 'model')
+
+        // 事件监听
+        node.addEventListener('input', event => this.$vm[exp] = event.target.value)
     }
 
     update(node, key, dir) {
@@ -259,8 +273,8 @@ class Compiler {
     }
 
     modelUpdate(node, val) {
-        // node.addEventListener('input', event => val += event.data)
-        // node.textContent = val
+        // 飙到元素赋值
+        node.value = val
     }
 
 }
