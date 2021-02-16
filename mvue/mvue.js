@@ -46,9 +46,8 @@ class MVue {
 /**
  * Observer 观察者
  * 1.负责数据响应化
- * 2.负责对对象进行依赖收集
- * 3.观察者模式应用
- * 4.每个 data object 对应一个 observer
+ * 2.观察者模式应用
+ * 3.每个 data object 对应一个 observer
  *  */
 class Observer {
 
@@ -132,10 +131,11 @@ class Dep {
 
 /**
  * Watcher 监听器（具体观察者）
- * 1.负责执行动态属性的响应式更新
- * 2.每个 Watcher 持有一个更新函数
- * 3.更新函数负责更新视图
- * 4.关键属性：updateFn, update()
+ * 1.负责对对象进行依赖收集
+ * 2.负责执行动态属性的响应式更新
+ * 3.每个 Watcher 持有一个更新函数
+ * 4.更新函数负责更新视图
+ * 5.关键属性：updateFn, update()
  *  */
 class Watcher {
 
