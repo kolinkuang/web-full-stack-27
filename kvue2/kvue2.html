@@ -11,10 +11,18 @@
             counter: 1
         },
         render(h) {
-            const d1 = document.createElement('div')
-            d1.id = 'app'
-            d1.textContent = this.counter
-            return d1
+            // const d1 = document.createElement('div')
+            // d1.id = 'app'
+            // d1.textContent = this.counter
+            // return d1
+
+            // 使用虚拟 DOM
+            // return h('div', {id: 'app'}, this.counter + '')
+            return h('div', {id: 'app'}, [
+                h('p', null, this.counter + ''),
+                h('p', null, this.counter * 2 + ''),
+                h('p', null, this.counter * 3 + '')
+            ])
         }
     })
     setInterval(() => {
