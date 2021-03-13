@@ -1,0 +1,10 @@
+<script src="https://cdn.bootcdn.net/ajax/libs/snabbdom/0.7.4/snabbdom.min.js"></script>
+<script>
+    // 增加style模块
+    const {init, h} = window.snabbdom
+    const patch = init([])
+    function render() {
+        // 添加节点样式描述
+        return h('div', {style: {color: 'red'}}, obj.foo)
+    }
+</script>

@@ -1,0 +1,23 @@
+<meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+<div id="app">
+    {{counter}}
+</div>
+<script src="kvue2.js"></script>
+<script>
+    const Vue = window.Vue
+    const app = new Vue({
+        el: '#app',
+        data: {
+            counter: 1
+        },
+        render(h) {
+            const d1 = document.createElement('div')
+            d1.id = 'app'
+            d1.textContent = this.counter
+            return d1
+        }
+    })
+    setInterval(() => {
+        app.counter++
+    }, 1000);
+</script>
