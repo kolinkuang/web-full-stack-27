@@ -91,7 +91,6 @@ class KVue {
             const {render} = this.$options
             const vnode = render.call(this, this.$createElement)
             this._update(vnode)
-
         }
 
         // 3. 创建 watcher
@@ -214,7 +213,6 @@ class KVue {
                 parentElm.removeChild(child.el)
             })
         }
-
     }
 
 }
