@@ -1,0 +1,78 @@
+<div id="app"></div>
+<script>
+
+    const createAppAPI = render => {
+        return function (rootComponent) {
+            // 创建 app 对象
+            const app = {
+                mount(rootContainer) {
+                    // 根组件 vnode
+                    const vnode = {
+                        tag: rootComponent
+                    }
+                    render(vnode, rootContainer)
+                }
+            }
+
+            return app
+        }
+    }
+
+    const createRenderer = ({querySelector, createElement, insert}) => {
+        const render = (rootVNode, container) => {
+            const rootComponent = rootVNode.tag
+            const vnode = rootComponent.render.call(rootComponent.data())
+
+            // 转换为真实 DOM
+            const child = createElement(vnode.tag)
+
+            // 获取宿主
+            const parent = querySelector(container)
+
+            if (typeof vnode.children === 'string') {
+                child.textContent = vnode.children
+            } else {
+                // 省略递归操作
+            }
+
+            insert(child, parent)
+        }
+
+        return {
+            render,
+            createApp: createAppAPI(render)
+        }
+    }
+
+    const nodeOpts = {
+        querySelector(sel) {
+            return document.querySelector(sel)
+        },
+        createElement(tag) {
+            return document.createElement(tag)
+        },
+        insert(child, parent) {
+            parent.appendChild(child)
+        }
+    }
+
+    const Vue = {
+        createApp(options) {
+            return createRenderer(nodeOpts).createApp(options)
+        }
+    }
+
+    Vue.createApp({
+        data() {
+            return {
+                foo: 'hello vue3!'
+            }
+        },
+        render() {
+            return {
+                tag: 'h2',
+                children: this.foo
+            }
+        }
+    }).mount('#app')
+</script>
