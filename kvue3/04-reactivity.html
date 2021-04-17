@@ -1,0 +1,37 @@
+<div id="app">
+    <h1>Reactivity</h1>
+    <p @click="add">{{ counter }}</p>
+    <p @click="add">{{ doubleCounter }}</p>
+</div>
+
+<script src="../dist/vue.global.js"></script>
+<script>
+    const {createApp, reactive, toRefs, computed, onMounted} = Vue
+
+    function useCounter() {
+        // 返回代理之后的响应式对象
+        const state = reactive({
+            counter: 0,
+            //计算属性
+            doubleCounter: computed(() => state.counter * 2)
+        })
+
+        function add() {
+            state.counter++;
+        }
+
+        // 生命周期
+        onMounted(() => {
+            console.log('component is mounted!', state.counter)
+        })
+
+        return {...toRefs(state), add};
+    }
+
+    createApp({
+        setup() {
+            // 返回渲染函数中的上下文
+            return useCounter();
+        }
+    }).mount('#app')
+</script>
