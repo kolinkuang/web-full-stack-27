@@ -1,0 +1,20 @@
+<div id="app"></div>
+
+<script type="module">
+    // import {reactive, effect} from '../dist/reactivity.esm-browser.js'
+    import {reactive, effect} from './06-reactive.js'
+
+    const obj = {
+        name: 'Kolin',
+        age: 8
+    }
+    const data = reactive(obj)
+    // effect() 定义我们的更新函数
+    effect(() => {
+        app.innerHTML = `<h1>${data.name} is ${data.age} years old now</h1>`
+    })
+    // 修改⼀下数值
+    setInterval(() => {
+        data.age++
+    }, 1000);
+</script>
